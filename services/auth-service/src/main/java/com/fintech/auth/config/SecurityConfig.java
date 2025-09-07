@@ -1,4 +1,10 @@
 package com.fintech.auth.config;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
+import org.springframework.security.web.header.writers.StrictTransportSecurityHeaderWriter;
+import org.springframework.security.web.server.header.StrictTransportSecurityServerHttpHeadersWriter;
+import org.springframework.security.web.authentication.preauth.x509.X509AuthenticationFilter;
+import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
+import org.springframework.security.web.authentication.preauth.x509.SubjectDnX509PrincipalExtractor;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfigurer;
@@ -30,7 +36,21 @@ public class SecurityConfig {
             .authorizeHttpRequests((authorize) -> authorize
                 .requestMatchers("/actuator/**", "/.well-known/**").permitAll()
                 .anyRequest().authenticated()
+            )
+            // Enforce HTTPS for all requests
+            .requiresChannel(channel -> channel.anyRequest().requiresSecure())
+            // Add HSTS header for FAPI compliance
+            .headers(headers -> headers.httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000)))
+            // Add mTLS support for token endpoint (stub)
+            .x509(x509 -> x509
+                .subjectPrincipalRegex("CN=(.*?)(?:,|$)")
+                .userDetailsService(username -> {
+                    // TODO: Lookup client by certificate subject (for mTLS)
+                    return null;
+                })
             );
+        // Add PoP token support (stub)
+        // TODO: Implement PoP token issuance and validation (DPoP, cnf claim)
         return http.build();
     }
 
@@ -40,6 +60,8 @@ public class SecurityConfig {
             .clientId("sandbox-client")
             .clientSecret("sandbox-secret")
             .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+            // For mTLS, register client certificate thumbprint (stub)
+            // .clientAuthenticationMethod(ClientAuthenticationMethod.TLS_CLIENT_AUTHENTICATION)
             .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
             .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
             .redirectUri("http://localhost:8080/login/oauth2/code/sandbox-client")
@@ -58,4 +80,6 @@ public class SecurityConfig {
 
     // JWKS and token endpoints are exposed by default by Spring Authorization Server
     // For mTLS and PoP tokens, additional configuration is required (stubbed for now)
+    // TODO: Implement FAPI-compliant error handling and logging
+    // TODO: Validate audience, scopes, and claims for FAPI
 }
