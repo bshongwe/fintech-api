@@ -16,6 +16,21 @@ public class AccountService {
         this.repo = repo;
     }
 
+    import org.springframework.beans.factory.annotation.Autowired;
+
+    @Service
+    public class AccountService {
+        @Autowired
+        private AccountRepository accountRepository;
+
+        public Account createAccount(Account account) {
+            return accountRepository.save(account);
+        }
+
+        public Optional<Account> getAccount(Long id) {
+            return accountRepository.findById(id);
+        }
+
     public Balance getBalance(UUID accountId) {
         Account a = repo.findById(accountId).orElseThrow(() -> new RuntimeException("Account not found"));
         return new Balance(a.getAccountId(), a.getCurrency(), a.getBalance());
