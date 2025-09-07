@@ -1,3 +1,4 @@
+import org.springframework.security.oauth2.server.authorization.token.JwtGenerator;
 package com.fintech.auth.config;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.web.header.writers.StrictTransportSecurityHeaderWriter;
@@ -80,6 +81,10 @@ public class SecurityConfig {
 
     // JWKS and token endpoints are exposed by default by Spring Authorization Server
     // For mTLS and PoP tokens, additional configuration is required (stubbed for now)
+    @Bean
+    public JwtGenerator jwtGenerator(JwtEncoder jwtEncoder) {
+        return new CustomJwtGenerator(jwtEncoder);
+    }
     // TODO: Implement FAPI-compliant error handling and logging
     // TODO: Validate audience, scopes, and claims for FAPI
 }
