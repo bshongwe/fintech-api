@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: fintech-platform
+  jackson:
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+
+logging:
+  level:
+    root: INFO

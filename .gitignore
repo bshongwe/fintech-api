@@ -1,0 +1,8 @@
+/.gradle
+/build
+/.idea
+/.vscode
+**/target
+**/*.iml
+.gradle-cache
+.env

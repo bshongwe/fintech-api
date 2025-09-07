@@ -1,0 +1,12 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fintech
+    username: fintech
+    password: fintech
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false

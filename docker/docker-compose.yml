@@ -1,0 +1,42 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: fintech
+      POSTGRES_USER: fintech
+      POSTGRES_PASSWORD: fintech
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - '6379:6379'
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    image: fintech/auth-service:local
+    ports:
+      - '9000:9000'
+    depends_on:
+      - postgres
+      - redis
+
+  account-service:
+    build:
+      context: .
+      dockerfile: services/account-service/Dockerfile
+    image: fintech/account-service:local
+    ports:
+      - '8081:8081'
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  pgdata:
