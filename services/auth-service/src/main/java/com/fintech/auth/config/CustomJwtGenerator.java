@@ -7,9 +7,13 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Component
 public class CustomJwtGenerator extends JwtGenerator {
+    @Autowired
+    private FapiClaimsValidator fapiClaimsValidator;
+
     public CustomJwtGenerator(JwtEncoder jwtEncoder) {
         super(jwtEncoder);
     }
@@ -19,8 +23,11 @@ public class CustomJwtGenerator extends JwtGenerator {
         JwtClaimsSet.Builder claims = super.populateClaims(context);
         // Add PoP token confirmation claim (cnf)
         if (context.getPrincipal() != null) {
-            // Example: Add a dummy JWK thumbprint for demonstration
             claims.claim("cnf", Map.of("jkt", "dummy-thumbprint"));
+        }
+        // FAPI claims validation
+        if (fapiClaimsValidator != null) {
+            fapiClaimsValidator.validateClaims(context);
         }
         return claims;
     }
