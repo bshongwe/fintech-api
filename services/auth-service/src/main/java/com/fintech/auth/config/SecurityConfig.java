@@ -47,6 +47,9 @@ public class SecurityConfig {
                 .subjectPrincipalRegex("CN=(.*?)(?:,|$)")
                 .userDetailsService(username -> {
                     // TODO: Lookup client by certificate subject (for mTLS)
+                    // Validate against RegisteredClient.getClientSettings().get("certificate_thumbprint")
+                    // String thumbprint = ...extract from certificate...
+                    // Compare with RegisteredClient.getClientSettings().get("certificate_thumbprint")
                     return null;
                 })
             );
@@ -62,12 +65,14 @@ public class SecurityConfig {
             .clientSecret("sandbox-secret")
             .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
             // For mTLS, register client certificate thumbprint (stub)
-            // .clientAuthenticationMethod(ClientAuthenticationMethod.TLS_CLIENT_AUTHENTICATION)
+            .clientAuthenticationMethod(ClientAuthenticationMethod.TLS_CLIENT_AUTHENTICATION)
             .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
             .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
             .redirectUri("http://localhost:8080/login/oauth2/code/sandbox-client")
             .scope("openid")
             .scope("profile")
+            // Store certificate thumbprint for mTLS (stub value)
+            .clientSettings(settings -> settings.setting("certificate_thumbprint", "dummy-thumbprint"))
             .build();
         return new InMemoryRegisteredClientRepository(registeredClient);
     }
