@@ -47,7 +47,7 @@ public class ReportCacheService {
             
         } catch (Exception e) {
             // Log error but don't fail the report generation
-            System.err.println("Failed to cache report: " + e.getMessage());
+            log.error("Failed to cache report for key: {} - Error: {}", cacheKey, e.getMessage(), e);
         }
     }
     
@@ -67,7 +67,7 @@ public class ReportCacheService {
             
         } catch (Exception e) {
             // Log error but return null (cache miss)
-            System.err.println("Failed to retrieve cached report: " + e.getMessage());
+            log.error("Failed to retrieve cached report for key: {} - Error: {}", cacheKey, e.getMessage(), e);
             return null;
         }
     }
@@ -93,7 +93,7 @@ public class ReportCacheService {
             }
             
         } catch (Exception e) {
-            System.err.println("Failed to invalidate report cache: " + e.getMessage());
+            log.error("Failed to invalidate report cache for key: {} - Error: {}", cacheKey, e.getMessage(), e);
         }
     }
     
@@ -118,7 +118,7 @@ public class ReportCacheService {
             }
             
         } catch (Exception e) {
-            System.err.println("Failed to cleanup expired cache: " + e.getMessage());
+            log.error("Failed to cleanup expired cache - Error: {}", e.getMessage(), e);
         }
     }
     
@@ -161,10 +161,10 @@ public class ReportCacheService {
             // This could be based on historical data or configuration
             
             // For now, just a placeholder
-            System.out.println("Cache pre-warming completed");
+            log.info("Cache pre-warming completed");
             
         } catch (Exception e) {
-            System.err.println("Failed to pre-warm cache: " + e.getMessage());
+            log.error("Failed to pre-warm cache - Error: {}", e.getMessage(), e);
         }
     }
     

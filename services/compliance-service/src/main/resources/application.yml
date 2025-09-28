@@ -1,0 +1,200 @@
+# Compliance Service Configuration
+
+server:
+  port: 8086
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  http2:
+    enabled: true
+
+spring:
+  application:
+    name: compliance-service
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:development}
+  
+  # Database Configuration
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/fintech_compliance}
+    username: ${DB_USERNAME:fintech_user}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+  
+  # Flyway Configuration
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      password: ${REDIS_PASSWORD:}
+      jedis:
+        pool:
+          max-active: 10
+          max-idle: 8
+          min-idle: 2
+          max-wait: 2000ms
+  
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: compliance-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.fintech.compliance.events,com.fintech.commons.events"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: true
+        acks: all
+        retries: 3
+        max.in.flight.requests.per.connection: 5
+  
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8081/oauth2/jwks}
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8081}
+
+# Logging Configuration
+logging:
+  level:
+    com.fintech.compliance: INFO
+    org.springframework.security: WARN
+    org.springframework.kafka: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Custom Compliance Configuration
+fintech:
+  compliance:
+    # PCI DSS Configuration
+    pci:
+      enabled: true
+      card-data-retention-days: ${PCI_CARD_DATA_RETENTION_DAYS:90}
+      audit-log-retention-days: ${PCI_AUDIT_LOG_RETENTION_DAYS:365}
+      encryption-key: ${PCI_ENCRYPTION_KEY}
+    
+    # PSD2 Configuration
+    psd2:
+      enabled: true
+      strong-authentication-required: true
+      transaction-monitoring-enabled: true
+      consent-validity-days: ${PSD2_CONSENT_VALIDITY_DAYS:90}
+    
+    # KYC Configuration
+    kyc:
+      enabled: true
+      verification-levels: basic,enhanced,ultimate
+      document-retention-years: ${KYC_DOCUMENT_RETENTION_YEARS:7}
+      risk-scoring-enabled: true
+    
+    # AML Configuration
+    aml:
+      enabled: true
+      transaction-monitoring-enabled: true
+      suspicious-activity-threshold: ${AML_SUSPICIOUS_THRESHOLD:10000}
+      reporting-enabled: true
+      whitelist-countries: ${AML_WHITELIST_COUNTRIES:US,CA,GB,DE,FR,NL,CH,AU,NZ}
+
+---
+# Development Profile
+spring:
+  config:
+    activate:
+      on-profile: development
+  jpa:
+    show-sql: true
+  flyway:
+    clean-disabled: false
+
+logging:
+  level:
+    com.fintech.compliance: DEBUG
+    org.springframework.security: DEBUG
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: production
+  
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/compliance_db}
+    username: ${DB_USERNAME:compliance_user}
+    password: ${DB_PASSWORD}
+  
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      password: ${REDIS_PASSWORD}
+  
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    ssl:
+      trust-store-location: ${KAFKA_TRUSTSTORE_LOCATION}
+      trust-store-password: ${KAFKA_TRUSTSTORE_PASSWORD}
+      key-store-location: ${KAFKA_KEYSTORE_LOCATION}
+      key-store-password: ${KAFKA_KEYSTORE_PASSWORD}
+
+logging:
+  level:
+    com.fintech.compliance: INFO
+    org.springframework.security: WARN

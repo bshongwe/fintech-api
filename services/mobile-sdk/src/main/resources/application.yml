@@ -18,9 +18,9 @@ spring:
     active: development
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/mobilesdk_db
-    username: mobilesdk_user
-    password: mobilesdk_password
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${MOBILE_DB_NAME:fintech_mobile}
+    username: ${DB_USERNAME:fintech_user}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20

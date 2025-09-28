@@ -1,0 +1,245 @@
+# Reporting Service Configuration
+
+server:
+  port: 8088
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  http2:
+    enabled: true
+
+spring:
+  application:
+    name: reporting-service
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:development}
+  
+  # Database Configuration
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/fintech_reporting}
+    username: ${DB_USERNAME:fintech_user}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+  
+  # Flyway Configuration
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      password: ${REDIS_PASSWORD:}
+      jedis:
+        pool:
+          max-active: 10
+          max-idle: 8
+          min-idle: 2
+          max-wait: 2000ms
+  
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: reporting-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.fintech.reporting.events,com.fintech.commons.events"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: true
+        acks: all
+        retries: 3
+        max.in.flight.requests.per.connection: 5
+  
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8081/oauth2/jwks}
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8081}
+
+# Logging Configuration
+logging:
+  level:
+    com.fintech.reporting: INFO
+    org.springframework.security: WARN
+    org.springframework.kafka: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Custom Reporting Configuration
+fintech:
+  reporting:
+    # Report Generation
+    generation:
+      max-concurrent-reports: ${REPORTING_MAX_CONCURRENT:5}
+      timeout-minutes: ${REPORTING_TIMEOUT_MINUTES:30}
+      temp-directory: ${REPORTING_TEMP_DIR:/tmp/reports}
+      max-report-size-mb: ${REPORTING_MAX_SIZE_MB:100}
+    
+    # Report Storage
+    storage:
+      type: ${REPORTING_STORAGE_TYPE:filesystem} # filesystem, s3, gcs
+      retention-days: ${REPORTING_RETENTION_DAYS:90}
+      base-path: ${REPORTING_STORAGE_PATH:/opt/reports}
+      s3-bucket: ${REPORTING_S3_BUCKET:}
+      s3-region: ${REPORTING_S3_REGION:us-east-1}
+    
+    # Data Sources
+    data-sources:
+      account-service:
+        url: ${ACCOUNT_SERVICE_URL:http://localhost:8083}
+        timeout-seconds: ${ACCOUNT_SERVICE_TIMEOUT:30}
+      payment-service:
+        url: ${PAYMENT_SERVICE_URL:http://localhost:8084}
+        timeout-seconds: ${PAYMENT_SERVICE_TIMEOUT:30}
+      compliance-service:
+        url: ${COMPLIANCE_SERVICE_URL:http://localhost:8086}
+        timeout-seconds: ${COMPLIANCE_SERVICE_TIMEOUT:30}
+      fraud-service:
+        url: ${FRAUD_SERVICE_URL:http://localhost:8087}
+        timeout-seconds: ${FRAUD_SERVICE_TIMEOUT:30}
+    
+    # Report Types
+    reports:
+      transaction-summary:
+        enabled: true
+        schedule: ${REPORT_TRANSACTION_SCHEDULE:0 0 1 * * ?} # Daily at 1 AM
+      compliance-audit:
+        enabled: true
+        schedule: ${REPORT_COMPLIANCE_SCHEDULE:0 0 2 * * SUN} # Weekly on Sunday at 2 AM
+      fraud-analysis:
+        enabled: true
+        schedule: ${REPORT_FRAUD_SCHEDULE:0 0 3 * * ?} # Daily at 3 AM
+      executive-dashboard:
+        enabled: true
+        schedule: ${REPORT_EXECUTIVE_SCHEDULE:0 0 6 * * MON} # Weekly on Monday at 6 AM
+    
+    # Notification Configuration
+    notifications:
+      email-enabled: ${REPORTING_EMAIL_ENABLED:true}
+      webhook-enabled: ${REPORTING_WEBHOOK_ENABLED:false}
+      webhook-url: ${REPORTING_WEBHOOK_URL:}
+      email-from: ${REPORTING_EMAIL_FROM:reports@fintech.com}
+      email-template-path: ${REPORTING_EMAIL_TEMPLATE_PATH:classpath:templates/email}
+
+---
+# Development Profile
+spring:
+  config:
+    activate:
+      on-profile: development
+  jpa:
+    show-sql: true
+  flyway:
+    clean-disabled: false
+
+logging:
+  level:
+    com.fintech.reporting: DEBUG
+    org.springframework.security: DEBUG
+
+fintech:
+  reporting:
+    generation:
+      temp-directory: /tmp/dev-reports
+    notifications:
+      email-enabled: false
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: production
+  
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/reporting_db}
+    username: ${DB_USERNAME:reporting_user}
+    password: ${DB_PASSWORD}
+  
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      password: ${REDIS_PASSWORD}
+  
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    ssl:
+      trust-store-location: ${KAFKA_TRUSTSTORE_LOCATION}
+      trust-store-password: ${KAFKA_TRUSTSTORE_PASSWORD}
+      key-store-location: ${KAFKA_KEYSTORE_LOCATION}
+      key-store-password: ${KAFKA_KEYSTORE_PASSWORD}
+
+logging:
+  level:
+    com.fintech.reporting: INFO
+    org.springframework.security: WARN
+
+fintech:
+  reporting:
+    storage:
+      type: s3
+    data-sources:
+      account-service:
+        url: http://account-service:8083
+      payment-service:
+        url: http://payment-service:8084
+      compliance-service:
+        url: http://compliance-service:8086
+      fraud-service:
+        url: http://fraud-detection-service:8087

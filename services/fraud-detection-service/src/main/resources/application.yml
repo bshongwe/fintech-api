@@ -1,0 +1,214 @@
+# Fraud Detection Service Configuration
+
+server:
+  port: 8087
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  http2:
+    enabled: true
+
+spring:
+  application:
+    name: fraud-detection-service
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:development}
+  
+  # Database Configuration
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/fintech_fraud}
+    username: ${DB_USERNAME:fintech_user}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+  
+  # Flyway Configuration
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      password: ${REDIS_PASSWORD:}
+      jedis:
+        pool:
+          max-active: 10
+          max-idle: 8
+          min-idle: 2
+          max-wait: 2000ms
+  
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: fraud-detection-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.fintech.fraud.events,com.fintech.commons.events"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: true
+        acks: all
+        retries: 3
+        max.in.flight.requests.per.connection: 5
+  
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8081/oauth2/jwks}
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8081}
+
+# Logging Configuration
+logging:
+  level:
+    com.fintech.fraud: INFO
+    org.springframework.security: WARN
+    org.springframework.kafka: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Custom Fraud Detection Configuration
+fintech:
+  fraud:
+    # Real-time Fraud Detection
+    realtime:
+      enabled: true
+      max-processing-time-ms: ${FRAUD_MAX_PROCESSING_TIME:500}
+      confidence-threshold: ${FRAUD_CONFIDENCE_THRESHOLD:0.75}
+    
+    # Machine Learning Configuration
+    ml:
+      model-path: ${ML_MODEL_PATH:/opt/fraud-models}
+      model-refresh-interval-hours: ${ML_MODEL_REFRESH_HOURS:24}
+      training-data-retention-days: ${ML_TRAINING_DATA_RETENTION_DAYS:365}
+      batch-size: ${ML_BATCH_SIZE:1000}
+    
+    # Risk Scoring
+    risk:
+      velocity-check-enabled: true
+      geolocation-check-enabled: true
+      device-fingerprint-enabled: true
+      behavioral-analysis-enabled: true
+      high-risk-threshold: ${FRAUD_HIGH_RISK_THRESHOLD:0.8}
+      medium-risk-threshold: ${FRAUD_MEDIUM_RISK_THRESHOLD:0.5}
+    
+    # Alert Configuration
+    alerts:
+      email-notifications-enabled: ${FRAUD_EMAIL_ALERTS:true}
+      sms-notifications-enabled: ${FRAUD_SMS_ALERTS:false}
+      webhook-notifications-enabled: ${FRAUD_WEBHOOK_ALERTS:true}
+      webhook-url: ${FRAUD_WEBHOOK_URL}
+    
+    # Feature Flags
+    features:
+      deep-learning-enabled: ${FRAUD_DEEP_LEARNING:true}
+      graph-analysis-enabled: ${FRAUD_GRAPH_ANALYSIS:true}
+      external-data-sources-enabled: ${FRAUD_EXTERNAL_DATA:false}
+
+---
+# Development Profile
+spring:
+  config:
+    activate:
+      on-profile: development
+  jpa:
+    show-sql: true
+  flyway:
+    clean-disabled: false
+
+logging:
+  level:
+    com.fintech.fraud: DEBUG
+    org.springframework.security: DEBUG
+
+fintech:
+  fraud:
+    ml:
+      model-path: /tmp/fraud-models
+    alerts:
+      email-notifications-enabled: false
+      sms-notifications-enabled: false
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: production
+  
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/fraud_db}
+    username: ${DB_USERNAME:fraud_user}
+    password: ${DB_PASSWORD}
+  
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      password: ${REDIS_PASSWORD}
+  
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    ssl:
+      trust-store-location: ${KAFKA_TRUSTSTORE_LOCATION}
+      trust-store-password: ${KAFKA_TRUSTSTORE_PASSWORD}
+      key-store-location: ${KAFKA_KEYSTORE_LOCATION}
+      key-store-password: ${KAFKA_KEYSTORE_PASSWORD}
+
+logging:
+  level:
+    com.fintech.fraud: INFO
+    org.springframework.security: WARN

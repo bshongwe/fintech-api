@@ -65,7 +65,7 @@ public class ModelInferenceService {
             // 2. Trigger model retraining pipeline
             // 3. Deploy updated model
             
-            System.out.println("Received " + examples.size() + " training examples for model update");
+            log.info("Received {} training examples for model update", examples.size());
         });
     }
     

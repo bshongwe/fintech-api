@@ -12,8 +12,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +30,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/admin/alerts")
+@Validated
 @Tag(name = "System Alerts", description = "System alert management and monitoring")
 public class SystemAlertController {
     

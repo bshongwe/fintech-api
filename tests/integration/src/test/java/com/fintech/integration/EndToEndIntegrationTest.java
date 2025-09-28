@@ -2,6 +2,8 @@ package com.fintech.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -40,6 +42,8 @@ import static org.awaitility.Awaitility.await;
 @Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class EndToEndIntegrationTest {
+    
+    private static final Logger logger = LoggerFactory.getLogger(EndToEndIntegrationTest.class);
     
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
@@ -257,8 +261,8 @@ public class EndToEndIntegrationTest {
                 String concurrentPaymentId = initiatePaymentWithToken(token);
                 paymentIds.add(concurrentPaymentId);
             } catch (Exception e) {
-                // Log but continue
-                System.err.println("Concurrent payment failed: " + e.getMessage());
+                // Log but continue - use proper logger instead of System.err
+                logger.warn("Concurrent payment failed: {}", e.getMessage());
             }
         });
         
