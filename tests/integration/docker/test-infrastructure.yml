@@ -1,0 +1,233 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for Integration Tests
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: fintech-postgres-test
+    environment:
+      POSTGRES_DB: fintech_integration_test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5433:5432"
+    volumes:    
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./sql/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql
+    networks:
+      - fintech-test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d fintech_integration_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+  # Redis for Caching Tests
+  redis-test:
+    image: redis:7-alpine
+    container_name: fintech-redis-test
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_test_data:/data
+      - ./redis/redis-test.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - fintech-test-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      
+  # Kafka for Event-Driven Testing  
+  zookeeper-test:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: fintech-zookeeper-test
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2182:2181"
+    volumes:
+      - zookeeper_test_data:/var/lib/zookeeper/data
+      - zookeeper_test_logs:/var/lib/zookeeper/log
+    networks:
+      - fintech-test-network
+      
+  kafka-test:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: fintech-kafka-test
+    depends_on:
+      - zookeeper-test
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-test:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_DELETE_TOPIC_ENABLE: 'true'
+      KAFKA_LOG_RETENTION_HOURS: 1
+      KAFKA_LOG_RETENTION_BYTES: 1073741824
+      KAFKA_LOG_SEGMENT_BYTES: 104857600
+    ports:
+      - "9093:9092"
+    volumes:
+      - kafka_test_data:/var/lib/kafka/data
+    networks:
+      - fintech-test-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      
+  # Mock Bank Service for Integration Testing
+  mock-bank-service:
+    image: wiremock/wiremock:2.35.0
+    container_name: fintech-mock-bank
+    ports:
+      - "8089:8080"
+    volumes:
+      - ./wiremock/mappings:/home/wiremock/mappings
+      - ./wiremock/files:/home/wiremock/__files
+    command: ["--global-response-templating", "--verbose"]
+    networks:
+      - fintech-test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/__admin/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      
+  # Mock ML Service for Fraud Detection Testing
+  mock-ml-service:
+    image: wiremock/wiremock:2.35.0
+    container_name: fintech-mock-ml
+    ports:
+      - "8090:8080"
+    volumes:
+      - ./wiremock/ml-mappings:/home/wiremock/mappings
+      - ./wiremock/ml-files:/home/wiremock/__files
+    command: ["--global-response-templating", "--verbose", "--port", "8080"]
+    networks:
+      - fintech-test-network
+      
+  # Elasticsearch for Logging and Monitoring Tests
+  elasticsearch-test:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: fintech-elasticsearch-test
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9201:9200"
+    volumes:
+      - elasticsearch_test_data:/usr/share/elasticsearch/data
+    networks:
+      - fintech-test-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      
+  # Kibana for Log Visualization in Tests
+  kibana-test:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: fintech-kibana-test
+    depends_on:
+      - elasticsearch-test
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch-test:9200
+    ports:
+      - "5602:5601"
+    networks:
+      - fintech-test-network
+      
+  # Prometheus for Metrics Testing
+  prometheus-test:
+    image: prom/prometheus:v2.47.0
+    container_name: fintech-prometheus-test
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus/prometheus-test.yml:/etc/prometheus/prometheus.yml
+      - prometheus_test_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=1h'
+      - '--web.enable-lifecycle'
+    networks:
+      - fintech-test-network
+      
+  # Grafana for Dashboard Testing
+  grafana-test:
+    image: grafana/grafana:10.2.0
+    container_name: fintech-grafana-test
+    depends_on:
+      - prometheus-test
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_test_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - fintech-test-network
+      
+  # Jaeger for Distributed Tracing Tests
+  jaeger-test:
+    image: jaegertracing/all-in-one:1.50
+    container_name: fintech-jaeger-test
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+    ports:
+      - "16687:16686"  # Jaeger UI
+      - "14269:14268"  # Jaeger collector
+    networks:
+      - fintech-test-network
+      
+  # SMTP Server for Notification Testing
+  mailhog-test:
+    image: mailhog/mailhog:v1.0.1
+    container_name: fintech-mailhog-test
+    ports:
+      - "8026:8025"  # Web UI
+      - "1026:1025"  # SMTP
+    networks:
+      - fintech-test-network
+
+volumes:
+  postgres_test_data:
+    driver: local
+  redis_test_data:
+    driver: local
+  kafka_test_data:
+    driver: local
+  zookeeper_test_data:
+    driver: local
+  zookeeper_test_logs:
+    driver: local
+  elasticsearch_test_data:
+    driver: local
+  prometheus_test_data:
+    driver: local
+  grafana_test_data:
+    driver: local
+
+networks:
+  fintech-test-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

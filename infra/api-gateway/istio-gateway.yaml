@@ -1,0 +1,380 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: fintech-gateway
+  namespace: fintech-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - api.fintech.local
+    - api.fintech.com
+    tls:
+      httpsRedirect: true
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    hosts:
+    - api.fintech.local
+    - api.fintech.com
+    tls:
+      mode: SIMPLE
+      credentialName: fintech-tls-secret
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: fintech-api-routes
+  namespace: fintech-system
+spec:
+  hosts:
+  - api.fintech.local
+  - api.fintech.com
+  gateways:
+  - fintech-gateway
+  http:
+  # Authentication Service Routes
+  - match:
+    - uri:
+        prefix: /api/v1/auth
+    route:
+    - destination:
+        host: auth-service.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+    
+  # Account Service Routes
+  - match:
+    - uri:
+        prefix: /api/v1/account
+    route:
+    - destination:
+        host: account-service.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      
+  # Payment Service Routes
+  - match:
+    - uri:
+        prefix: /api/v1/payments
+    route:
+    - destination:
+        host: payment-service.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+    timeout: 60s # Longer timeout for payment processing
+    retries:
+      attempts: 2
+      perTryTimeout: 30s
+      
+  # Fraud Detection Service Routes
+  - match:
+    - uri:
+        prefix: /api/v1/fraud
+    route:
+    - destination:
+        host: fraud-detection-service.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+    timeout: 20s
+    retries:
+      attempts: 3
+      perTryTimeout: 8s
+      
+  # Compliance Service Routes
+  - match:
+    - uri:
+        prefix: /api/v1/compliance
+    route:
+    - destination:
+        host: compliance-service.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      
+  # Reporting Service Routes
+  - match:
+    - uri:
+        prefix: /api/v1/reports
+    route:
+    - destination:
+        host: reporting-service.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+    timeout: 120s # Longer timeout for report generation
+    retries:
+      attempts: 2
+      perTryTimeout: 60s
+      
+  # Admin Dashboard Routes
+  - match:
+    - uri:
+        prefix: /api/v1/admin
+    route:
+    - destination:
+        host: admin-dashboard.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      
+  # Mobile SDK Routes
+  - match:
+    - uri:
+        prefix: /api/v1/mobile
+    route:
+    - destination:
+        host: mobile-sdk.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      
+  # Ledger Service Routes
+  - match:
+    - uri:
+        prefix: /api/v1/ledger
+    route:
+    - destination:
+        host: ledger-service.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      
+  # Notification Service Routes
+  - match:
+    - uri:
+        prefix: /api/v1/notifications
+    route:
+    - destination:
+        host: notification-service.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+    timeout: 15s
+    retries:
+      attempts: 3
+      perTryTimeout: 5s
+      
+  # Health Check Routes (No authentication required)
+  - match:
+    - uri:
+        prefix: /actuator/health
+    route:
+    - destination:
+        host: account-service.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+      weight: 20
+    - destination:
+        host: payment-service.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+      weight: 20
+    - destination:
+        host: fraud-detection-service.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+      weight: 20
+    - destination:
+        host: compliance-service.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+      weight: 20
+    - destination:
+        host: reporting-service.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+      weight: 20
+    timeout: 10s
+    
+  # Default fallback route
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: auth-service.fintech-system.svc.cluster.local
+        port:
+          number: 8080
+    fault:
+      abort:
+        percentage:
+          value: 100
+        httpStatus: 404
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: fintech-api-security
+  namespace: fintech-system
+spec:
+  action: ALLOW
+  rules:
+  # Public endpoints (no authentication required)
+  - to:
+    - operation:
+        paths: ["/api/v1/auth/login", "/api/v1/auth/register", "/actuator/health", "/api/v1/.well-known/*"]
+        
+  # Admin endpoints (admin role required)
+  - to:
+    - operation:
+        paths: ["/api/v1/admin/*"]
+    when:
+    - key: request.auth.claims[role]
+      values: ["ADMIN", "SUPER_ADMIN"]
+      
+  # User endpoints (authenticated users)
+  - to:
+    - operation:
+        paths: ["/api/v1/account/*", "/api/v1/payments/*", "/api/v1/mobile/*"]
+    when:
+    - key: source.principal
+      notValues: [""]
+      
+  # Internal service communication
+  - from:
+    - source:
+        principals: ["cluster.local/ns/fintech-system/sa/default"]
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: fintech-jwt-auth
+  namespace: fintech-system
+spec:
+  jwtRules:
+  - issuer: "fintech-api"
+    jwksUri: "http://auth-service.fintech-system.svc.cluster.local:8080/.well-known/jwks.json"
+    audiences:
+    - "fintech-api"
+    - "fintech-mobile"
+    - "fintech-admin"
+    forwardOriginalToken: true
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: fintech-services-circuit-breaker
+  namespace: fintech-system
+spec:
+  host: "*.fintech-system.svc.cluster.local"
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+        consecutiveGatewayErrors: 5
+        interval: 30s
+        baseEjectionTime: 30s
+        maxEjectionPercent: 50
+    outlierDetection:
+      consecutiveGatewayErrors: 5
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 30
+    loadBalancer:
+      simple: LEAST_CONN
+  portLevelSettings:
+  - port:
+      number: 8080
+    connectionPool:
+      tcp:
+        maxConnections: 50
+      http:
+        http1MaxPendingRequests: 25
+        maxRequestsPerConnection: 5
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: payment-service-canary
+  namespace: fintech-system
+spec:
+  host: payment-service.fintech-system.svc.cluster.local
+  subsets:
+  - name: stable
+    labels:
+      version: stable
+  - name: canary
+    labels:
+      version: canary
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 200
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 200
+        maxRequestsPerConnection: 20
+        maxRetries: 2
+    outlierDetection:
+      consecutiveGatewayErrors: 3
+      consecutive5xxErrors: 3
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 30
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: payment-service-canary-routing
+  namespace: fintech-system
+spec:
+  hosts:
+  - payment-service.fintech-system.svc.cluster.local
+  http:
+  # Canary deployment - 10% traffic to canary version
+  - match:
+    - headers:
+        x-canary-user:
+          exact: "true"
+    route:
+    - destination:
+        host: payment-service.fintech-system.svc.cluster.local
+        subset: canary
+      weight: 100
+  - route:
+    - destination:
+        host: payment-service.fintech-system.svc.cluster.local
+        subset: stable
+      weight: 90
+    - destination:
+        host: payment-service.fintech-system.svc.cluster.local
+        subset: canary
+      weight: 10

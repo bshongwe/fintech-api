@@ -1,0 +1,262 @@
+# Integration Test Configuration
+# Environment: integration-test
+
+spring:
+  profiles:
+    active: integration-test
+    
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fintech_integration_test
+    username: test
+    password: test
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        
+  # Flyway Configuration (disabled for integration tests)
+  flyway:
+    enabled: false
+    
+  # Redis Configuration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 1
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: fintech-integration-test
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "com.fintech.*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        spring.json.add.type.headers: false
+        
+  # Jackson Configuration
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+      
+# Server Configuration
+server:
+  port: 0 # Random port for tests
+  servlet:
+    context-path: /
+    
+# Security Configuration
+fintech:
+  security:
+    jwt:
+      enabled: true
+      secret: integration-test-secret-key-that-is-very-long-and-secure-for-testing-purposes-only
+      expiration: 3600000 # 1 hour
+      refresh-expiration: 86400000 # 24 hours
+    rate-limiting:
+      enabled: true
+      requests-per-minute: 100
+      burst-capacity: 200
+    encryption:
+      enabled: true
+      algorithm: AES
+      key: test-encryption-key-32-characters
+      
+  # Service Configuration
+  services:
+    payment:
+      enabled: true
+      timeout: 30s
+      retry:
+        max-attempts: 3
+        delay: 1s
+    fraud-detection:
+      enabled: true
+      timeout: 10s
+      ml-model:
+        enabled: false # Use rule-based for testing
+    compliance:
+      enabled: true
+      audit-retention-days: 30
+    reporting:
+      enabled: true
+      cache-ttl: 300s
+    admin-dashboard:
+      enabled: true
+      metrics-interval: 10s
+    mobile-sdk:
+      enabled: true
+      session-timeout: 1800s
+      
+  # Integration Test Specific Configuration
+  integration-test:
+    database:
+      auto-create: true
+      populate-test-data: true
+    mock-external-services: true
+    performance-testing: false
+    security-testing: true
+    
+# Logging Configuration
+logging:
+  level:
+    com.fintech: DEBUG
+    org.springframework.kafka: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO
+    org.testcontainers: INFO
+    root: WARN
+    
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId}] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId}] %logger{36} - %msg%n"
+    
+# Management/Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        
+# Test Data Configuration
+test-data:
+  users:
+    - username: testuser
+      password: password123
+      role: USER
+      email: testuser@fintech.com
+    - username: admin
+      password: admin123
+      role: ADMIN
+      email: admin@fintech.com
+    - username: integrationuser
+      password: secure123
+      role: USER
+      email: integration@fintech.com
+      
+  accounts:
+    - accountType: CHECKING
+      currency: USD
+      initialBalance: 1000.00
+    - accountType: SAVINGS  
+      currency: USD
+      initialBalance: 5000.00
+      
+  bank-connectors:
+    - name: TEST_BANK
+      enabled: true
+      base-url: http://localhost:8080/mock-bank
+      timeout: 30s
+      
+# Mock Configuration
+mock:
+  external-services:
+    enabled: true
+    bank-responses:
+      success-rate: 95
+      average-response-time: 500ms
+    fraud-ml-service:
+      enabled: false
+      default-risk-score: 0.1
+      
+---
+# Security Test Profile
+spring:
+  config:
+    activate:
+      on-profile: security-test
+      
+fintech:
+  security:
+    test-mode: true
+    enhanced-logging: true
+    jwt:
+      expiration: 60000 # Short expiration for testing
+    rate-limiting:
+      requests-per-minute: 10 # Strict for testing
+      
+logging:
+  level:
+    org.springframework.security: DEBUG
+    com.fintech.security: DEBUG
+    
+---
+# Performance Test Profile  
+spring:
+  config:
+    activate:
+      on-profile: performance-test
+      
+  datasource:
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 20
+      
+fintech:
+  integration-test:
+    performance-testing: true
+    load:
+      concurrent-users: 100
+      duration-minutes: 5
+      ramp-up-seconds: 30
+      
+---
+# E2E Test Profile
+spring:
+  config:
+    activate:
+      on-profile: e2e-test
+      
+fintech:
+  integration-test:
+    mock-external-services: false
+    use-real-bank-connectors: true
+    
+  services:
+    payment:
+      timeout: 60s
+    fraud-detection:
+      ml-model:
+        enabled: true
