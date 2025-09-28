@@ -1,0 +1,15 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Mobile SDK Database",
+      "Group": "Development",
+      "Host": "mobile-sdk-db",
+      "Port": 5432,
+      "MaintenanceDB": "mobilesdk_db",
+      "Username": "mobilesdk_user",
+      "Password": "mobilesdk_password",
+      "SSLMode": "prefer",
+      "Shared": true
+    }
+  }
+}

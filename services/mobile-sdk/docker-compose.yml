@@ -1,0 +1,153 @@
+version: '3.8'
+
+services:
+  mobile-sdk-db:
+    image: postgres:15-alpine
+    container_name: mobile-sdk-postgres
+    environment:
+      POSTGRES_DB: mobilesdk_db
+      POSTGRES_USER: mobilesdk_user
+      POSTGRES_PASSWORD: mobilesdk_password
+    ports:
+      - "5437:5432"
+    volumes:
+      - mobile_sdk_postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - fintech-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mobilesdk_user -d mobilesdk_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mobile-sdk-redis:
+    image: redis:7-alpine
+    container_name: mobile-sdk-redis
+    ports:
+      - "6381:6379"
+    volumes:
+      - mobile_sdk_redis_data:/data
+    networks:
+      - fintech-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mobile-sdk-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: mobile-sdk-service
+    ports:
+      - "8085:8085"
+      - "5008:5005"  # Debug port
+    environment:
+      SPRING_PROFILES_ACTIVE: development
+      DB_URL: jdbc:postgresql://mobile-sdk-db:5432/mobilesdk_db
+      DB_USERNAME: mobilesdk_user
+      DB_PASSWORD: mobilesdk_password
+      REDIS_HOST: mobile-sdk-redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      API_BASE_URL: http://localhost:8085
+    volumes:
+      - ./logs:/app/logs
+      - ./src:/app/src:ro  # Mount source for hot reload
+    networks:
+      - fintech-network
+    depends_on:
+      mobile-sdk-db:
+        condition: service_healthy
+      mobile-sdk-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Kafka (shared with other services)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - fintech-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_HOST://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    networks:
+      - fintech-network
+
+  # Kafka UI for development
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    networks:
+      - fintech-network
+
+  # Redis Commander for development
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    depends_on:
+      - mobile-sdk-redis
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_HOSTS: local:mobile-sdk-redis:6379
+    networks:
+      - fintech-network
+
+  # PostgreSQL Admin (pgAdmin)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    depends_on:
+      - mobile-sdk-db
+    ports:
+      - "8082:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@fintech.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./docker/pgadmin-servers.json:/pgadmin4/servers.json
+    networks:
+      - fintech-network
+
+volumes:
+  mobile_sdk_postgres_data:
+  mobile_sdk_redis_data:
+  pgadmin_data:
+
+networks:
+  fintech-network:
+    external: true
