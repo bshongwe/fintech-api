@@ -1,0 +1,198 @@
+server:
+  port: 8090
+  servlet:
+    context-path: /admin-dashboard
+
+spring:
+  application:
+    name: admin-dashboard
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fintech_admin
+    username: ${DB_USERNAME:fintech_user}
+    password: ${DB_PASSWORD:fintech_pass}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+    open-in-view: false
+  
+  # Flyway Configuration
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+  
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 3
+      timeout: 2000ms
+      jedis:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+  
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000 # 5 minutes
+      cache-null-values: false
+  
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+    consumer:
+      group-id: admin-dashboard-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: latest
+      properties:
+        spring.json.trusted.packages: "com.fintech.*"
+        session.timeout.ms: 30000
+        heartbeat.interval.ms: 3000
+  
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8081/oauth2/jwks}
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8081}
+  
+  # WebSocket Configuration
+  websocket:
+    enabled: true
+
+# Management and Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,flyway,caches
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.9, 0.95, 0.99
+  tracing:
+    sampling:
+      probability: 0.1
+
+# Logging Configuration
+logging:
+  level:
+    com.fintech.admin: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.kafka: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/admin-dashboard.log
+    max-size: 100MB
+    max-history: 30
+
+# Application Configuration
+app:
+  admin:
+    # Session timeout in minutes
+    session-timeout: 480
+    # Maximum failed login attempts before account lock
+    max-failed-attempts: 5
+    # Account lock duration in minutes
+    account-lock-duration: 30
+    # Password policy
+    password:
+      min-length: 12
+      require-uppercase: true
+      require-lowercase: true
+      require-numbers: true
+      require-special-chars: true
+    # MFA configuration
+    mfa:
+      enabled: true
+      issuer: "Fintech Admin"
+      window-size: 3
+  
+  monitoring:
+    # Health check interval in seconds
+    health-check-interval: 60
+    # Metric retention period in days
+    metric-retention-days: 90
+    # Alert consolidation window in minutes
+    alert-consolidation-window: 60
+    # Performance thresholds
+    thresholds:
+      cpu-usage: 80
+      memory-usage: 85
+      disk-usage: 90
+      response-time: 5000
+      error-rate: 5
+  
+  reports:
+    # Report generation timeout in minutes
+    generation-timeout: 30
+    # Maximum concurrent report generations
+    max-concurrent-generations: 5
+    # Report cache TTL in minutes
+    cache-ttl: 60
+
+# API Documentation
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+  show-actuator: true
