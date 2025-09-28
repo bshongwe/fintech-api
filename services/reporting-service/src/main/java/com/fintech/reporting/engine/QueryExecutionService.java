@@ -29,11 +29,12 @@ public class QueryExecutionService {
      * Execute report query with parameter substitution
      */
     public ReportDataSet executeQuery(ReportDefinition definition, Map<String, Object> parameters) {
-        String query = buildQuery(definition.getQueryTemplate(), parameters);
+        String query = definition.getQueryTemplate();
+        List<Object> paramValues = new ArrayList<>(parameters.values());
         
         try {
-            // Execute query and map results
-            List<Map<String, Object>> rows = jdbcTemplate.queryForList(query);
+            // Execute parameterized query
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(query, paramValues.toArray());
             
             // Build dataset
             ReportDataSet dataSet = new ReportDataSet();
@@ -41,7 +42,7 @@ public class QueryExecutionService {
             dataSet.setRowCount(rows.size());
             dataSet.setColumns(extractColumns(rows));
             dataSet.setExecutedQuery(query);
-            dataSet.setExecutionTime(System.currentTimeMillis()); // Would measure actual time
+            dataSet.setExecutionTime(System.currentTimeMillis());
             
             return dataSet;
             
@@ -162,16 +163,8 @@ public class QueryExecutionService {
     }
     
     private String buildQuery(String template, Map<String, Object> parameters) {
-        String query = template;
-        
-        // Simple parameter substitution (in production, use proper prepared statements)
-        for (Map.Entry<String, Object> entry : parameters.entrySet()) {
-            String placeholder = "${" + entry.getKey() + "}";
-            String value = String.valueOf(entry.getValue());
-            query = query.replace(placeholder, value);
-        }
-        
-        return query;
+        // Use parameterized queries only - no string substitution
+        return template;
     }
     
     private ReportDataSet executeParameterizedQuery(String query, List<Object> parameters) {

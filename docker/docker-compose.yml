@@ -3,9 +3,9 @@ services:
   postgres:
     image: postgres:14
     environment:
-      POSTGRES_DB: fintech
-      POSTGRES_USER: fintech
-      POSTGRES_PASSWORD: fintech
+      POSTGRES_DB: ${POSTGRES_DB:-fintech}
+      POSTGRES_USER: ${POSTGRES_USER:-fintech}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fintech}
     ports:
       - '5432:5432'
     volumes:

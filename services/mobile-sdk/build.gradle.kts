@@ -218,11 +218,12 @@ tasks.register("healthCheck") {
     doLast {
         try {
             val url = "http://localhost:8085/actuator/health"
-            val connection = java.net.URL(url).openConnection()
+            val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
             connection.connectTimeout = 5000
             connection.readTimeout = 5000
+            connection.requestMethod = "GET"
             
-            val responseCode = (connection as java.net.HttpURLConnection).responseCode
+            val responseCode = connection.responseCode
             if (responseCode == 200) {
                 println("✅ Mobile SDK Service is healthy")
             } else {

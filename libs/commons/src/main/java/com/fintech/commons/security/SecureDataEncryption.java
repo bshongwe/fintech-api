@@ -66,7 +66,7 @@ public class SecureDataEncryption {
         }
         
         try {
-            // Generate random IV
+            // Generate cryptographically secure random IV
             byte[] iv = new byte[GCM_IV_LENGTH];
             secureRandom.nextBytes(iv);
             

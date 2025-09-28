@@ -162,8 +162,8 @@ public class ComprehensiveSecurityFilter implements Filter {
         // Check query parameters
         String queryString = request.getQueryString();
         if (queryString != null && containsSuspiciousContent(queryString)) {
-            logger.warn("Suspicious query string detected: {} from IP: {}", 
-                    queryString, getClientIpAddress(request));
+            logger.warn("Suspicious query string detected from IP: {}", 
+                    getClientIpAddress(request));
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             response.getWriter().write("{\"error\":\"Invalid request parameters\"}");
             return false;
@@ -172,8 +172,8 @@ public class ComprehensiveSecurityFilter implements Filter {
         // Check headers for suspicious content
         String referer = request.getHeader("Referer");
         if (referer != null && containsSuspiciousContent(referer)) {
-            logger.warn("Suspicious referer detected: {} from IP: {}", 
-                    referer, getClientIpAddress(request));
+            logger.warn("Suspicious referer detected from IP: {}", 
+                    getClientIpAddress(request));
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             response.getWriter().write("{\"error\":\"Invalid referer\"}");
             return false;
@@ -194,8 +194,8 @@ public class ComprehensiveSecurityFilter implements Filter {
         for (String paramName : urlParams) {
             String paramValue = request.getParameter(paramName);
             if (paramValue != null && !SSRFPrevention.isUrlSafe(paramValue)) {
-                logger.warn("SSRF attempt detected in parameter {}: {} from IP: {}", 
-                        paramName, paramValue, getClientIpAddress(request));
+                logger.warn("SSRF attempt detected in parameter {} from IP: {}", 
+                        paramName, getClientIpAddress(request));
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 response.getWriter().write("{\"error\":\"Invalid URL parameter\"}");
                 return false;

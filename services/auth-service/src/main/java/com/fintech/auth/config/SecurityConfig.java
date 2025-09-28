@@ -1,5 +1,6 @@
-import org.springframework.security.oauth2.server.authorization.token.JwtGenerator;
 package com.fintech.auth.config;
+
+import org.springframework.security.oauth2.server.authorization.token.JwtGenerator;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.web.header.writers.StrictTransportSecurityHeaderWriter;
 import org.springframework.security.web.server.header.StrictTransportSecurityServerHttpHeadersWriter;
