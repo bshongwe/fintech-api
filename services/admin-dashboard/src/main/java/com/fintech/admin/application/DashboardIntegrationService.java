@@ -78,7 +78,7 @@ public class DashboardIntegrationService {
         return webClient.get()
             .uri(REPORTING_SERVICE_URL + "/api/reports/definitions")
             .retrieve()
-            .onStatus(HttpStatus::isError, response -> {
+            .onStatus(status -> status.isError(), response -> {
                 logger.error("Error fetching reports: {}", response.statusCode());
                 return Mono.empty();
             })

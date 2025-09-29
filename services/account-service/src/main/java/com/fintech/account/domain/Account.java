@@ -1,20 +1,4 @@
 package com.fintech.account.domain;
-import jakarta.persistence.*;
-import java.util.UUID;
-import java.math.BigDecimal;
-
-@Entity
-public class Account {
-    @Id
-    @GeneratedValue
-    private UUID accountId;
-
-    private BigDecimal balance;
-
-    private String currency;
-
-    // getters and setters
-}
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;

@@ -63,14 +63,12 @@ public class AdminUserService {
             if (adminUserRepository.existsByUsername(request.getUsername())) {
                 return ApiResponse.error(ErrorResponse.builder()
                     .message("Username already exists")
-                    .field("username")
                     .build());
             }
             
             if (adminUserRepository.existsByEmail(request.getEmail())) {
                 return ApiResponse.error(ErrorResponse.builder()
                     .message("Email already exists")
-                    .field("email")
                     .build());
             }
             
@@ -163,7 +161,6 @@ public class AdminUserService {
                 if (adminUserRepository.existsByEmail(request.getEmail())) {
                     return ApiResponse.error(ErrorResponse.builder()
                         .message("Email already exists")
-                        .field("email")
                         .build());
                 }
                 adminUser.setEmail(request.getEmail());

@@ -25,7 +25,7 @@ public class SecurityHeadersConfig {
                         // Enable HSTS (HTTP Strict Transport Security)
                         .httpStrictTransportSecurity(hstsConfig -> hstsConfig
                                 .maxAgeInSeconds(31536000) // 1 year
-                                .includeSubdomains(true)
+                                .includeSubDomains(true)
                                 .preload(true)
                         )
                         
@@ -51,16 +51,12 @@ public class SecurityHeadersConfig {
                         )
                         
                         // X-Content-Type-Options
-                        .contentTypeOptions(contentTypeOptionsConfig -> contentTypeOptionsConfig
-                                .and()
-                        )
+                        .contentTypeOptions(contentTypeOptionsConfig -> contentTypeOptionsConfig.disable())
                         
-                        // Referrer Policy
-                        .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
-                        
-                        // Custom security headers
+                        // Add custom security headers
                         .addHeaderWriter(new StaticHeadersWriter("X-Permitted-Cross-Domain-Policies", "none"))
                         .addHeaderWriter(new StaticHeadersWriter("X-XSS-Protection", "1; mode=block"))
+                        .addHeaderWriter(new StaticHeadersWriter("Referrer-Policy", "strict-origin-when-cross-origin"))
                         .addHeaderWriter(new StaticHeadersWriter("Permissions-Policy", 
                                 "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()"))
                         .addHeaderWriter(new StaticHeadersWriter("Cross-Origin-Embedder-Policy", "require-corp"))
@@ -71,9 +67,7 @@ public class SecurityHeadersConfig {
                         .addHeaderWriter(new StaticHeadersWriter("Server", ""))
                         
                         // Cache control for sensitive endpoints
-                        .cacheControl(cacheControlConfig -> cacheControlConfig
-                                .and()
-                        )
+                        .cacheControl(cacheControlConfig -> cacheControlConfig.disable())
                 )
                 .build();
     }

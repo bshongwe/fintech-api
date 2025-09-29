@@ -190,9 +190,4 @@ public class AdminUser {
     public void setCreatedBy(UUID createdBy) { this.createdBy = createdBy; }
 }
 
-enum AdminStatus {
-    ACTIVE,
-    INACTIVE,
-    SUSPENDED,
-    LOCKED
-}
+

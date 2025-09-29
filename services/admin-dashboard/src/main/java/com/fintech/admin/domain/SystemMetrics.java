@@ -126,9 +126,4 @@ public class SystemMetrics {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
 
-enum MetricType {
-    COUNTER,
-    GAUGE,
-    HISTOGRAM,
-    TIMER
-}
+

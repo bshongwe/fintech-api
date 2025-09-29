@@ -53,7 +53,7 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .code("VALIDATION_ERROR")
                 .message("Input validation failed")
-                .details(errors)
+                .details(Map.copyOf(errors))
                 .timestamp(LocalDateTime.now())
                 .path(getPath(request))
                 .build();
@@ -81,7 +81,7 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .code("BIND_ERROR")
                 .message("Data binding failed")
-                .details(errors)
+                .details(Map.copyOf(errors))
                 .timestamp(LocalDateTime.now())
                 .path(getPath(request))
                 .build();
@@ -109,7 +109,7 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .code("CONSTRAINT_VIOLATION")
                 .message("Constraint validation failed")
-                .details(errors)
+                .details(Map.copyOf(errors))
                 .timestamp(LocalDateTime.now())
                 .path(getPath(request))
                 .build();

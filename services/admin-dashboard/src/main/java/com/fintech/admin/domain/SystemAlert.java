@@ -205,27 +205,4 @@ public class SystemAlert {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
 
-enum AlertSeverity {
-    LOW,
-    MEDIUM,
-    HIGH,
-    CRITICAL
-}
 
-enum AlertStatus {
-    OPEN,
-    ACKNOWLEDGED,
-    RESOLVED,
-    CLOSED
-}
-
-enum AlertCategory {
-    SYSTEM_HEALTH,
-    SECURITY,
-    COMPLIANCE,
-    FRAUD,
-    PERFORMANCE,
-    DATA_QUALITY,
-    INTEGRATION,
-    BUSINESS_RULE
-}

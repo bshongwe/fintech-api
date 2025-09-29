@@ -29,10 +29,15 @@ import java.util.regex.Pattern;
 public class ComprehensiveSecurityFilter implements Filter {
     
     private static final Logger logger = LoggerFactory.getLogger(ComprehensiveSecurityFilter.class);
+    private final SSRFPrevention ssrfPrevention;
     
     // Rate limiting
     private static final int MAX_REQUESTS_PER_MINUTE = 100;
     private final ConcurrentHashMap<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
+    
+    public ComprehensiveSecurityFilter(SSRFPrevention ssrfPrevention) {
+        this.ssrfPrevention = ssrfPrevention;
+    }
     private final ConcurrentHashMap<String, Long> lastResetTime = new ConcurrentHashMap<>();
     
     // Suspicious patterns
@@ -114,7 +119,7 @@ public class ComprehensiveSecurityFilter implements Filter {
         AtomicInteger count = requestCounts.computeIfAbsent(clientIp, k -> new AtomicInteger(0));
         if (count.incrementAndGet() > MAX_REQUESTS_PER_MINUTE) {
             logger.warn("Rate limit exceeded for IP: {} ({})", clientIp, count.get());
-            response.setStatus(HttpServletResponse.SC_TOO_MANY_REQUESTS);
+            response.setStatus(429); // 429 Too Many Requests
             response.setHeader("Retry-After", "60");
             response.getWriter().write("{\"error\":\"Rate limit exceeded\"}");
             return false;
@@ -193,10 +198,10 @@ public class ComprehensiveSecurityFilter implements Filter {
         
         for (String paramName : urlParams) {
             String paramValue = request.getParameter(paramName);
-            if (paramValue != null && !SSRFPrevention.isUrlSafe(paramValue)) {
+            if (paramValue != null && !ssrfPrevention.isUrlSafe(paramValue)) {
                 logger.warn("SSRF attempt detected in parameter {} from IP: {}", 
                         paramName, getClientIpAddress(request));
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.setStatus(400); // 400 Bad Request
                 response.getWriter().write("{\"error\":\"Invalid URL parameter\"}");
                 return false;
             }

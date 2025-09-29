@@ -1,3 +1,7 @@
+import java.time.Instant
+import java.net.URL
+import java.net.HttpURLConnection
+
 plugins {
     id("org.springframework.boot") version "3.2.0"
     id("io.spring.dependency-management") version "1.1.4"
@@ -160,7 +164,7 @@ tasks.bootJar {
             "Implementation-Version" to project.version,
             "Built-By" to System.getProperty("user.name"),
             "Built-JDK" to System.getProperty("java.version"),
-            "Build-Time" to java.time.Instant.now().toString()
+            "Build-Time" to Instant.now().toString()
         )
     }
 }
@@ -218,7 +222,7 @@ tasks.register("healthCheck") {
     doLast {
         try {
             val url = "http://localhost:8085/actuator/health"
-            val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            val connection = URL(url).openConnection() as HttpURLConnection
             connection.connectTimeout = 5000
             connection.readTimeout = 5000
             connection.requestMethod = "GET"

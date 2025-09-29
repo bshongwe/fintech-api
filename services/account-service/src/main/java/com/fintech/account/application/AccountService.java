@@ -3,36 +3,32 @@ package com.fintech.account.application;
 import com.fintech.account.domain.Balance;
 import com.fintech.account.domain.Account;
 import com.fintech.account.infrastructure.AccountRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class AccountService {
 
-    private final AccountRepository repo;
+    private final AccountRepository accountRepository;
 
-    public AccountService(AccountRepository repo) {
-        this.repo = repo;
+    @Autowired
+    public AccountService(AccountRepository accountRepository) {
+        this.accountRepository = accountRepository;
     }
 
-    import org.springframework.beans.factory.annotation.Autowired;
+    public Account createAccount(Account account) {
+        return accountRepository.save(account);
+    }
 
-    @Service
-    public class AccountService {
-        @Autowired
-        private AccountRepository accountRepository;
-
-        public Account createAccount(Account account) {
-            return accountRepository.save(account);
-        }
-
-        public Optional<Account> getAccount(Long id) {
-            return accountRepository.findById(id);
-        }
+    public Optional<Account> getAccount(UUID id) {
+        return accountRepository.findById(id);
+    }
 
     public Balance getBalance(UUID accountId) {
-        Account a = repo.findById(accountId).orElseThrow(() -> new RuntimeException("Account not found"));
+        Account a = accountRepository.findById(accountId).orElseThrow(() -> new RuntimeException("Account not found"));
         return new Balance(a.getAccountId(), a.getCurrency(), a.getBalance());
     }
 }
