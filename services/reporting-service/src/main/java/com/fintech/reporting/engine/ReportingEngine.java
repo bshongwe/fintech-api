@@ -68,6 +68,7 @@ public class ReportingEngine {
         }
         
         // Check cache first
+        final ReportExecution finalExecution = execution;
         CompletableFuture<ReportExecution> future = CompletableFuture.supplyAsync(() -> {
             try {
                 ReportDefinition definition = definitionRepository.findById(definitionId)
@@ -81,11 +82,11 @@ public class ReportingEngine {
                     }
                 }
                 
-                return executeReport(execution, definition, parameters);
+                return executeReport(finalExecution, definition, parameters);
                 
             } catch (Exception e) {
-                execution.markFailed(e.getMessage());
-                executionRepository.save(execution);
+                finalExecution.markFailed(e.getMessage());
+                executionRepository.save(finalExecution);
                 throw new RuntimeException("Report generation failed", e);
             } finally {
                 activeExecutions.remove(cacheKey);

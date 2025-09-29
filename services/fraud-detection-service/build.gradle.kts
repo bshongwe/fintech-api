@@ -27,8 +27,8 @@ dependencies {
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
     
     // Circuit breaker for bank connectors
-    implementation("io.github.resilience4j:resilience4j-spring-boot3")
-    implementation("io.github.resilience4j:resilience4j-reactor")
+    implementation("io.github.resilience4j:resilience4j-spring-boot3:2.1.0")
+    implementation("io.github.resilience4j:resilience4j-reactor:2.1.0")
     
     // Metrics
     implementation("io.micrometer:micrometer-registry-prometheus")

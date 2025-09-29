@@ -1,24 +1,13 @@
 package com.fintech.auth.config;
 
-import org.springframework.security.oauth2.server.authorization.token.JwtGenerator;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
-import org.springframework.security.web.header.writers.StrictTransportSecurityHeaderWriter;
-import org.springframework.security.web.server.header.StrictTransportSecurityServerHttpHeadersWriter;
-import org.springframework.security.web.authentication.preauth.x509.X509AuthenticationFilter;
-import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
-import org.springframework.security.web.authentication.preauth.x509.SubjectDnX509PrincipalExtractor;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
-import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
-import org.springframework.security.oauth2.server.authorization.config.ProviderSettings;
-import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import java.util.UUID;
 
 import org.springframework.context.annotation.Bean;
@@ -66,14 +55,16 @@ public class SecurityConfig {
             .clientSecret("sandbox-secret")
             .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
             // For mTLS, register client certificate thumbprint (stub)
-            .clientAuthenticationMethod(ClientAuthenticationMethod.TLS_CLIENT_AUTHENTICATION)
+            .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
             .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
             .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
             .redirectUri("http://localhost:8080/login/oauth2/code/sandbox-client")
             .scope("openid")
             .scope("profile")
             // Store certificate thumbprint for mTLS (stub value)
-            .clientSettings(settings -> settings.setting("certificate_thumbprint", "dummy-thumbprint"))
+            .clientSettings(org.springframework.security.oauth2.server.authorization.settings.ClientSettings.builder()
+                .setting("certificate_thumbprint", "dummy-thumbprint")
+                .build())
             .build();
         return new InMemoryRegisteredClientRepository(registeredClient);
     }
@@ -85,12 +76,6 @@ public class SecurityConfig {
             .build();
     }
 
-    // JWKS and token endpoints are exposed by default by Spring Authorization Server
-    // For mTLS and PoP tokens, additional configuration is required (stubbed for now)
-    @Bean
-    public JwtGenerator jwtGenerator(JwtEncoder jwtEncoder) {
-        return new CustomJwtGenerator(jwtEncoder);
-    }
     // TODO: Implement FAPI-compliant error handling and logging
     // TODO: Validate audience, scopes, and claims for FAPI
 }

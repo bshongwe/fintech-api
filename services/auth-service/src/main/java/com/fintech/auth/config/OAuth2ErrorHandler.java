@@ -9,13 +9,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 @ControllerAdvice
 public class OAuth2ErrorHandler {
-    @ExceptionHandler(OAuth2Error.class)
+    @ExceptionHandler(Exception.class)
     @ResponseBody
-    public ResponseEntity<?> handleOAuth2Error(OAuth2Error ex) {
+    public ResponseEntity<?> handleOAuth2Error(Exception ex) {
         // FAPI-compliant error response
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
-            .body(new ErrorResponse(ex.getErrorCode(), ex.getDescription()));
+            .body(new ErrorResponse("server_error", ex.getMessage()));
     }
 
     static class ErrorResponse {

@@ -1,5 +1,7 @@
 package com.fintech.fraud.engine;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -10,6 +12,8 @@ import java.util.concurrent.CompletableFuture;
  */
 @Service
 public class ModelInferenceService {
+    
+    private static final Logger log = LoggerFactory.getLogger(ModelInferenceService.class);
     
     // In production, this would hold references to loaded ML models
     private boolean modelLoaded = false;
@@ -89,8 +93,8 @@ public class ModelInferenceService {
         
         // Simple neural network simulation
         double[] layer1 = computeLayer(features, getRandomWeights(features.size(), 8));
-        double[] layer2 = computeLayer(List.of(layer1), getRandomWeights(8, 4));
-        double[] output = computeLayer(List.of(layer2), getRandomWeights(4, 1));
+        double[] layer2 = computeLayer(java.util.Arrays.stream(layer1).boxed().toList(), getRandomWeights(8, 4));
+        double[] output = computeLayer(java.util.Arrays.stream(layer2).boxed().toList(), getRandomWeights(4, 1));
         
         return sigmoid(output[0]); // Return probability score
     }

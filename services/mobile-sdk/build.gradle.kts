@@ -40,7 +40,7 @@ dependencies {
     // Database
     implementation("org.postgresql:postgresql")
     implementation("org.flywaydb:flyway-core")
-    implementation("org.flywaydb:flyway-database-postgresql")
+
     implementation("com.zaxxer:HikariCP")
     
     // Redis

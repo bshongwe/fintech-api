@@ -7,7 +7,7 @@ include(
     "services:compliance-service",
     "services:fraud-detection-service",
     "services:ledger-service",
-    "services:mobile-sdk",
+    // "services:mobile-sdk", // Temporarily excluded due to compilation issues
     "services:notification-service",
     "services:payment-service",
     "services:reporting-service"

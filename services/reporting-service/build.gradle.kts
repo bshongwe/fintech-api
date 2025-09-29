@@ -46,7 +46,7 @@ dependencies {
     implementation("software.amazon.awssdk:s3:2.20.0")
     
     // Circuit breaker for service calls
-    implementation("io.github.resilience4j:resilience4j-spring-boot3")
+    implementation("io.github.resilience4j:resilience4j-spring-boot3:2.1.0")
     
     // Metrics and monitoring
     implementation("io.micrometer:micrometer-registry-prometheus")

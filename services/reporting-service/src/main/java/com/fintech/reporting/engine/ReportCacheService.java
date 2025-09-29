@@ -1,6 +1,8 @@
 package com.fintech.reporting.engine;
 
 import com.fintech.reporting.core.ReportExecution;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,8 @@ import java.util.concurrent.TimeUnit;
  */
 @Service
 public class ReportCacheService {
+    
+    private static final Logger log = LoggerFactory.getLogger(ReportCacheService.class);
     
     private final RedisTemplate<String, Object> redisTemplate;
     private final ReportExecutionRepository executionRepository;
@@ -93,7 +97,7 @@ public class ReportCacheService {
             }
             
         } catch (Exception e) {
-            log.error("Failed to invalidate report cache for key: {} - Error: {}", cacheKey, e.getMessage(), e);
+            log.error("Failed to invalidate report cache for definition: {} - Error: {}", definitionId, e.getMessage(), e);
         }
     }
     
