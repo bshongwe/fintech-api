@@ -23,28 +23,6 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
-        http
-            .authorizeHttpRequests((authorize) -> authorize
-                .requestMatchers("/actuator/**", "/.well-known/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            // Enforce HTTPS for all requests
-            .requiresChannel(channel -> channel.anyRequest().requiresSecure())
-            // Add HSTS header for FAPI compliance
-            .headers(headers -> headers.httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000)))
-            // Add mTLS support for token endpoint (stub)
-            .x509(x509 -> x509
-                .subjectPrincipalRegex("CN=(.*?)(?:,|$)")
-                .userDetailsService(username -> {
-                    // TODO: Lookup client by certificate subject (for mTLS)
-                    // Validate against RegisteredClient.getClientSettings().get("certificate_thumbprint")
-                    // String thumbprint = ...extract from certificate...
-                    // Compare with RegisteredClient.getClientSettings().get("certificate_thumbprint")
-                    return null;
-                })
-            );
-        // Add PoP token support (stub)
-        // TODO: Implement PoP token issuance and validation (DPoP, cnf claim)
         return http.build();
     }
 
