@@ -20,7 +20,7 @@ spring:
   # Database Configuration
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/fintech_compliance}
-    username: ${DB_USERNAME:fintech_user}
+    username: ${DB_USERNAME:fintech}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:

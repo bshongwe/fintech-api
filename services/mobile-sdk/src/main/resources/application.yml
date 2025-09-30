@@ -19,7 +19,7 @@ spring:
   
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${MOBILE_DB_NAME:fintech_mobile}
-    username: ${DB_USERNAME:fintech_user}
+    username: ${DB_USERNAME:fintech}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
